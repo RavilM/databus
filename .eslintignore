@@ -1,0 +1,8 @@
+node_modules/
+config/
+build/
+docker/
+k8s/
+public/
+*.d.ts
+replace-streams/
