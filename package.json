@@ -1,0 +1,53 @@
+{
+  "name": "@ravilm/databus",
+  "version": "0.0.1",
+  "license": "MIT License",
+  "main": "./lib/index.js",
+  "typings": "./lib/index.d.ts",
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run eslint:fix && git add . && npm run check:types"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "check:types": "tsc",
+    "eslint:fix": "eslint . --ext .ts --fix",
+    "eslint": "eslint . --ext .ts"
+  },
+  "devDependencies": {
+    "@types/lodash-es": "4.17.3",
+    "@types/enzyme": "3.10.4",
+    "@types/jest": "25.2.2",
+    "@types/promise-sequential": "1.1.0",
+    "@types/react-dom": "16.9.8",
+    "@typescript-eslint/eslint-plugin": "2.5.0",
+    "@typescript-eslint/parser": "2.5.0",
+    "babel-eslint": "10.1.0",
+    "babel-jest": "24.9.0",
+    "camelcase": "5.3.1",
+    "enzyme": "3.11.0",
+    "eslint": "6.6.0",
+    "eslint-config-airbnb": "18.0.1",
+    "eslint-config-prettier": "6.5.0",
+    "eslint-import-resolver-alias": "1.1.2",
+    "eslint-import-resolver-typescript": "2.0.0",
+    "eslint-plugin-css-modules": "2.11.0",
+    "eslint-plugin-import": "2.18.2",
+    "eslint-plugin-jsx-a11y": "6.2.3",
+    "eslint-plugin-prettier": "3.1.1",
+    "eslint-plugin-security": "1.4.0",
+    "fs-extra": "8.1.0",
+    "husky": "3.1.0",
+    "jest": "24.9.0",
+    "lodash-es": "4.17.15",
+    "prettier": "1.18.2",
+    "promise-sequential": "1.1.1",
+    "react": "16.12.0",
+    "react-dom": "16.12.0",
+    "resolve": "1.15.0",
+    "semver": "6.3.0",
+    "ts-pnp": "1.1.6",
+    "typescript": "3.8.3"
+  }
+}
