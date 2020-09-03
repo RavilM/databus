@@ -1,1 +1,1 @@
-export { subscriber } from './components/subscriber'
+export { subscriber } from './components/subscriber';
