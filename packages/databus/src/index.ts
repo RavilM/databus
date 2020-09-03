@@ -115,7 +115,7 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
 
   /**
    * setData - method for setting new data to dataState
-   * @param values
+   * @param values - keys
    */
   public setData = ({ values }: { values: { [key: string]: any } }) => {
     for (const name in values) {
