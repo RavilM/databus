@@ -1,5 +1,5 @@
 import React, { ComponentType, PureComponent } from 'react';
-import { Databus } from '../databus';
+import { Databus } from '@ravilm/databus';
 
 export const subscriber = <T extends any>({
   getStateToProps,
