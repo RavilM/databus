@@ -1,6 +1,6 @@
 {
   "name": "@ravilm/databus",
-  "version": "0.0.1",
+  "version": "0.0.1-alpha.0",
   "license": "MIT License",
   "main": "./lib/index.js",
   "typings": "./lib/index.d.ts",
@@ -18,9 +18,9 @@
     "install:update": "npm i"
   },
   "devDependencies": {
-    "@types/lodash-es": "4.17.3",
     "@types/enzyme": "3.10.4",
     "@types/jest": "25.2.2",
+    "@types/lodash-es": "4.17.3",
     "@types/promise-sequential": "1.1.0",
     "@types/react-dom": "16.9.8",
     "@typescript-eslint/eslint-plugin": "2.5.0",
