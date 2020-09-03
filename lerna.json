@@ -5,8 +5,7 @@
   "version": "0.0.1-alpha.1",
   "command": {
     "publish": {
-      "allowBranch": "master",
-      "access": "public"
+      "allowBranch": "master"
     }
   }
 }
