@@ -5,9 +5,6 @@
   "scripts": {
     "bootstrap": "lerna bootstrap --no-ci",
     "build": "lerna run build",
-    "check:types": "tsc",
-    "eslint:fix": "eslint . --ext .ts --fix",
-    "eslint": "eslint . --ext .ts",
     "install:update": "lerna run install:update",
     "install:ci": "lerna run install:ci"
   },

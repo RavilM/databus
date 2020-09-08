@@ -13,5 +13,5 @@
     "skipLibCheck": true,
     "strictFunctionTypes": false
   },
-  "exclude": ["node_modules", "lib"]
+  "exclude": ["node_modules", "lib", "webpack.config.ts"]
 }
