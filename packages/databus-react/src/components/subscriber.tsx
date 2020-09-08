@@ -1,27 +1,33 @@
 import React, { ComponentType, FC, useEffect, useState } from 'react';
 import { uniqueId } from 'lodash-es';
 import { Databus } from '@ravilm/databus';
+import { mapperValues } from '../utils/mapped-values';
+import { ObjectType, StateType, StateToPropsMapperType } from '../types';
 
-type RestStateType<StateType> = { [key in keyof StateType]?: any };
-type StateType<StateToProps> = {
+type AccumType<StateToProps> = {
   ids: { [key in keyof StateToProps]?: string };
-} & RestStateType<StateToProps>;
+} & StateType<StateToProps>;
+
+type getStateToPropsType<StateToProps> = {
+  [key: string]: StateToPropsMapperType<StateToProps>;
+};
 
 export const subscriber = <
-  StateToProps extends { [key: string]: string },
-  OwnProps extends {}
+  StateToProps extends ObjectType,
+  OwnProps extends ObjectType
 >({
   getStateToProps,
 }: {
-  getStateToProps: Array<string>;
+  getStateToProps: getStateToPropsType<StateToProps>;
 }) => (
   WrappedComponent: ComponentType<OwnProps>,
 ): FC<StateToProps & OwnProps> => (props: OwnProps) => {
-  const [state, setState] = useState<RestStateType<StateToProps>>({});
+  const [state, setState] = useState<StateType<StateToProps>>({});
 
   useEffect(() => {
-    const data = getStateToProps.reduce(
-      (accum: StateType<StateToProps>, name: string) => {
+    const data = Object.keys(getStateToProps).reduce(
+      (accum: AccumType<StateToProps>, name: string) => {
+        const currentPropValues = getStateToProps[name];
         const databus = new Databus({ name: `@subscriber/${name}` });
         const id = uniqueId(`@subscriber/${name}__`);
 
@@ -32,14 +38,14 @@ export const subscriber = <
           listener: () => {
             setState(prevState => ({
               ...prevState,
-              [name]: Databus.dataState[name],
+              ...mapperValues(currentPropValues, name),
             }));
           },
         });
 
         return {
           ...accum,
-          [name]: Databus.dataState[name],
+          ...mapperValues(currentPropValues, name),
           ids: { ...accum.ids, [`@subscriber/${name}`]: id },
         };
       },
@@ -50,7 +56,10 @@ export const subscriber = <
 
     const { ids, ...rest } = data;
 
-    setState(rest as RestStateType<StateToProps>);
+    setState(prevState => ({
+      ...prevState,
+      ...rest,
+    }));
 
     return () =>
       Object.keys(data.ids).forEach((key: string) =>
