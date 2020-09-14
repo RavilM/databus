@@ -1,6 +1,6 @@
 interface DatabusType<T = { [key: string]: any }> {
-  addCustomEvent(params?: { detail?: T }): void;
-  addEventListener(params: {
+  registerEvent(params?: { detail?: T }): void;
+  registerEventListener(params: {
     eventId?: string;
     listener(event: CustomEvent<T>): void;
   }): void;
@@ -25,12 +25,11 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
     }
 
     const formattedEventName = Databus.getFormattedEventName(params.name);
+    this.eventName = formattedEventName;
 
     if (!Databus.eventState[formattedEventName]) {
       Databus.eventState[formattedEventName] = {};
     }
-
-    this.eventName = formattedEventName;
   }
 
   /**
@@ -51,7 +50,7 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
   /**
    * dataState is needed for storing data that will share by subscriber
    */
-  static dataState: { [key: string]: any } = {};
+  static dataState: Record<string, any> = {};
 
   /**
    * getFormattedEventName is needed to format event names
@@ -64,7 +63,7 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
    * @param params - an object that stores the field "detail"
    * "detail" is an event-dependent value associated with this event
    */
-  public addCustomEvent = (params?: { eventId?: string; detail?: T }) => {
+  public registerEvent = (params?: { eventId?: string; detail?: T }) => {
     if (!this.eventName) {
       return;
     }
@@ -87,7 +86,7 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
    * @param listener - a function that will be called after receiving
    * a notification with the name of the type of the signed event
    */
-  public addEventListener = ({
+  public registerEventListener = ({
     eventId,
     listener,
   }: {
@@ -185,10 +184,10 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
    * @param values - keys
    */
   public setData = ({ values }: { values: { [key: string]: any } }) => {
-    for (const name in values) {
-      Databus.dataState[name] = values[name];
+    for (const valueName in values) {
+      Databus.dataState[valueName] = values[valueName];
 
-      const eventsBundleName = Databus.getFormattedEventName(name);
+      const eventsBundleName = Databus.getFormattedEventName(valueName);
       const eventsBundle = Databus.eventState[eventsBundleName];
 
       if (eventsBundle) {

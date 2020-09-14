@@ -12,7 +12,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "check:types": "tsc",
-    "eslint:fix": "eslint . --ext .ts --fix",
+    "eslint:fix": "eslint . --ext .ts,.tsx --fix",
     "eslint": "eslint . --ext .ts",
     "install:ci": "npm ci",
     "install:update": "npm i"

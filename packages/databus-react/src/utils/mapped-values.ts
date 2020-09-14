@@ -1,24 +1,23 @@
 import { Databus } from '@ravilm/databus';
-import {
-  StateType,
-  ObjectType,
-  GetDataType,
-  StateToPropsMapperType,
-} from '../types';
+import { StateType, GetDataType, StateToPropsMapperType } from '../types';
 
-export const mapperValues = <StateToProps extends ObjectType>(
+export const mapperValues = <StateToProps extends Record<string, string>>(
   currentPropValues: StateToPropsMapperType<StateToProps>,
   name: string,
 ): StateType<StateToProps> =>
   Object.entries(currentPropValues).reduce(
     (
       accumValues: StateType<StateToProps>,
-      [key, func]: [string, GetDataType],
+      [fieldName, selectFunc]: [string, GetDataType],
     ) => {
-      return {
-        ...accumValues,
-        [key]: func(Databus.dataState[name]),
-      };
+      const selectedData = Databus.dataState[name];
+
+      return selectedData
+        ? {
+            ...accumValues,
+            [fieldName]: selectFunc(selectedData),
+          }
+        : accumValues;
     },
     {},
   );
