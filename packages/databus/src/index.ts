@@ -24,13 +24,13 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
       return;
     }
 
-    const { name } = params;
+    const formattedEventName = Databus.getFormattedEventName(params.name);
 
-    if (!Databus.eventState[name]) {
-      Databus.eventState[name] = {};
+    if (!Databus.eventState[formattedEventName]) {
+      Databus.eventState[formattedEventName] = {};
     }
 
-    this.eventName = name;
+    this.eventName = formattedEventName;
   }
 
   /**
@@ -54,6 +54,12 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
   static dataState: { [key: string]: any } = {};
 
   /**
+   * getFormattedEventName is needed to format event names
+   */
+  static getFormattedEventName = (name: string): string =>
+    `@subscriber/${name}`;
+
+  /**
    * addCustomEvent - method for adding a new custom event
    * @param params - an object that stores the field "detail"
    * "detail" is an event-dependent value associated with this event
@@ -65,7 +71,7 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
 
     const newEventName = params?.eventId || this.eventName;
 
-    const prevData = Databus.eventState[this.eventName][newEventName] || {};
+    const prevData = Databus.eventState[this.eventName][newEventName];
 
     Databus.eventState[this.eventName][newEventName] = {
       ...prevData,
@@ -93,15 +99,16 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
     }
 
     const listenerName = eventId || this.eventName;
+    const preparedListener = ({ detail }: CustomEvent) => listener(detail);
 
-    const prevData = Databus.eventState[this.eventName][listenerName] || {};
+    const prevData = Databus.eventState[this.eventName][listenerName];
 
     Databus.eventState[this.eventName][listenerName] = {
       ...prevData,
-      listener,
+      listener: preparedListener,
     };
 
-    window.addEventListener(listenerName, listener);
+    window.addEventListener(listenerName, preparedListener);
   };
 
   /**
@@ -120,6 +127,8 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
 
     if (listenerForRemoving) {
       window.removeEventListener(listenerName, listenerForRemoving);
+
+      delete Databus.eventState[this.eventName][listenerName];
     }
   };
 
@@ -133,9 +142,10 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
       return;
     }
 
+    const eventName = params?.eventId || this.eventName;
+
     const eventForDispatch =
-      Databus.eventState[this.eventName][params?.eventId || this.eventName]
-        .event;
+      Databus.eventState[this.eventName][eventName].event;
 
     if (eventForDispatch) {
       window.dispatchEvent(eventForDispatch);
@@ -143,14 +153,16 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
   };
 
   static dispatchEvent = ({
-    name,
+    eventName,
     eventId,
   }: {
-    name: string;
+    eventName: string;
     eventId?: string;
   }) => {
+    const eventsBundle = Databus.eventState[eventName];
+
     if (eventId) {
-      const eventForDispatch = Databus.eventState[name][eventId]?.event;
+      const eventForDispatch = eventsBundle[eventId]?.event;
 
       if (eventForDispatch) {
         window.dispatchEvent(eventForDispatch);
@@ -159,13 +171,11 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
       return;
     }
 
-    const eventsFromState = Databus.eventState[name];
+    for (const key in eventsBundle) {
+      const eventFromState = eventsBundle[key].event;
 
-    for (const key in eventsFromState) {
-      const eventForDispatch = eventsFromState[key].event;
-
-      if (eventForDispatch) {
-        window.dispatchEvent(eventForDispatch);
+      if (eventFromState) {
+        window.dispatchEvent(eventFromState);
       }
     }
   };
@@ -178,15 +188,18 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
     for (const name in values) {
       Databus.dataState[name] = values[name];
 
-      const nameEvents = `@subscriber/${name}`;
-      const events = Databus.eventState[nameEvents];
+      const eventsBundleName = Databus.getFormattedEventName(name);
+      const eventsBundle = Databus.eventState[eventsBundleName];
 
-      if (events) {
-        for (const key in events) {
-          const event = events[key].event;
+      if (eventsBundle) {
+        for (const eventId in eventsBundle) {
+          const event = eventsBundle[eventId].event;
 
           if (event) {
-            Databus.dispatchEvent({ name: nameEvents, eventId: key });
+            Databus.dispatchEvent({
+              eventName: eventsBundleName,
+              eventId: eventId,
+            });
           }
         }
       }
@@ -194,12 +207,10 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
   };
 
   public getData = (params?: { name: string }) => {
-    if (params) {
-      return Databus.dataState[params.name];
-    }
+    const dataStateName = params?.name || this.eventName;
 
-    if (this.eventName) {
-      return Databus.dataState[this.eventName];
+    if (dataStateName) {
+      return Databus.dataState[dataStateName];
     }
   };
 }

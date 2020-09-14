@@ -2,7 +2,7 @@ import React, { ComponentType, FC, useEffect, useState } from 'react';
 import { uniqueId } from 'lodash-es';
 import { Databus } from '@ravilm/databus';
 import { mapperValues } from '../utils/mapped-values';
-import { ObjectType, StateType, StateToPropsMapperType } from '../types';
+import {  StateType, StateToPropsMapperType } from '../types';
 
 type AccumType<StateToProps> = {
   ids: { [key in keyof StateToProps]?: string };
@@ -12,14 +12,17 @@ type getStateToPropsType<StateToProps> = {
   [key: string]: StateToPropsMapperType<StateToProps>;
 };
 
-export const subscriber = <
-  StateToProps extends ObjectType,
-  OwnProps extends ObjectType
+type PropsType<StateToProps> = {
+  getStateToProps: getStateToPropsType<StateToProps>;
+}
+
+// todo rename
+export const Subscriber = <
+  StateToProps extends Record<string,string>,
+  OwnProps extends Record<string,string>
 >({
   getStateToProps,
-}: {
-  getStateToProps: getStateToPropsType<StateToProps>;
-}) => (
+}: PropsType<StateToProps>) => (
   WrappedComponent: ComponentType<OwnProps>,
 ): FC<StateToProps & OwnProps> => (props: OwnProps) => {
   const [state, setState] = useState<StateType<StateToProps>>({});
