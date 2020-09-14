@@ -1,1 +1,1 @@
-export { Subscriber } from './components/subscriber';
+export { databusSubscriber } from './components/databus-subscriber';
