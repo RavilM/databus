@@ -63,8 +63,8 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
   /**
    * getFormattedEventName is needed to format event names
    */
-  static getFormattedEventName = (name?: string): string =>
-    `@subscriber/${name || 'empty'}`;
+  static getFormattedEventName = (name: string): string =>
+    `@subscriber/${name}`;
 
   /**
    * addCustomEvent - method for adding a new custom event
@@ -217,10 +217,10 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
    * @param values - keys
    */
   public setData = ({ values }: { values: { [key: string]: any } }) => {
-    for (const valueName in values) {
-      Databus.dataState[valueName] = values[valueName];
+    for (const dataFieldName in values) {
+      Databus.dataState[dataFieldName] = values[dataFieldName];
 
-      const eventsBundleName = Databus.getFormattedEventName(valueName);
+      const eventsBundleName = Databus.getFormattedEventName(dataFieldName);
       const eventsBundle = Databus.eventState[eventsBundleName];
 
       if (eventsBundle) {
