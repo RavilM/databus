@@ -217,10 +217,10 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
    * @param values - keys
    */
   public setData = ({ values }: { values: { [key: string]: any } }) => {
-    for (const dataFieldName in values) {
-      Databus.dataState[dataFieldName] = values[dataFieldName];
+    for (const valueName in values) {
+      Databus.dataState[valueName] = values[valueName];
 
-      const eventsBundleName = Databus.getFormattedEventName(dataFieldName);
+      const eventsBundleName = Databus.getFormattedEventName(valueName);
       const eventsBundle = Databus.eventState[eventsBundleName];
 
       if (eventsBundle) {
