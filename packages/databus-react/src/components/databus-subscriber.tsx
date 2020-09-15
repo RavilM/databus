@@ -46,7 +46,7 @@ export const databusSubscriber = <
           return {
             ...accum,
             ...mapperValues(currentPropValues, name),
-            eventIds: { ...accum.eventIds, [name]: eventId },
+            eventsMeta: { ...accum.eventIds, [name]: eventId },
           };
         },
         {

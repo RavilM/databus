@@ -1,19 +1,18 @@
-interface DatabusType<T = Record<string, any>> {
+interface IDatabus<T = Record<string, any>> {
+  eventName: string;
   registerEvent(params?: { detail?: T }): void;
+  registerCustomEvent(params: {
+    eventId?: string;
+    listener(event: CustomEvent<T>): void;
+  }): void;
   registerEventListener(params: {
     eventId?: string;
     listener(event: CustomEvent<T>): void;
   }): void;
+  registerCustomEventListener(params?: { eventId?: string }): void;
   removeEventListener(params?: { eventId?: string }): void;
   setData(params: { values: { [key: string]: any } }): void;
 }
-
-/**
- * Name: '@subscriber/selectedSupplier': {[name]: event listener}
- * subscriber:
- * event
- * listener
- */
 
 type RegisterEventParamsType<T> = {
   eventId?: string;
@@ -27,14 +26,21 @@ type RegisterEventListenerParamsType<T> = {
   eventBaseName?: string;
 };
 
-export class Databus<T = { [key: string]: any }> implements DatabusType {
-  eventName: string;
+/**
+ * Name: '@subscriber/selectedSupplier': {[name]: event listener}
+ * subscriber:
+ * event
+ * listener
+ */
+
+export class Databus<T = Record<string, any>> implements IDatabus {
+  public eventName: string;
 
   constructor(params: { name: string }) {
     this.eventName = params.name;
   }
 
-  public static checkForEventState = (eventName: string) => {
+  public static checkEventState = (eventName: string) => {
     if (!Databus.eventState[eventName]) {
       Databus.eventState[eventName] = {};
     }
@@ -46,7 +52,7 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
    * event - is a custom event
    * listener - is a listener, what will listen events
    */
-  static eventState: {
+  public static eventState: {
     [key: string]: {
       [key: string]: {
         event?: CustomEvent;
@@ -58,16 +64,65 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
   /**
    * dataState is needed for storing data that will share by subscriber
    */
-  static dataState: Record<string, any> = {};
+  public static dataState: Record<string, any> = {};
 
   /**
    * getFormattedEventName is needed to format event names
    */
-  static getFormattedEventName = (name: string): string =>
+  public static getFormattedEventName = (name: string): string =>
     `@subscriber/${name}`;
 
+  public static getData = ({ name }: { name: string }) =>
+    Databus.dataState[name];
+
+  private static getListenerToRemove = ({
+    eventName,
+    eventId,
+    isCustomListener,
+  }: {
+    eventName: string;
+    eventId: string;
+    isCustomListener: boolean;
+  }) => {
+    const eventsBundle = isCustomListener
+      ? Databus.eventState[eventName]
+      : Databus.eventState[Databus.getFormattedEventName(eventName)];
+
+    const event = eventsBundle ? eventsBundle[eventId] : null;
+
+    return event?.listener;
+  };
+
+  public static dispatchEvent = ({
+    eventName,
+    eventId,
+  }: {
+    eventName: string;
+    eventId?: string;
+  }) => {
+    const eventsBundle = Databus.eventState[eventName];
+
+    if (eventId) {
+      const searchedEvent = eventsBundle[eventId]?.event;
+
+      if (searchedEvent) {
+        window.dispatchEvent(searchedEvent);
+      }
+
+      return;
+    }
+
+    for (const key in eventsBundle) {
+      const searchedEvent = eventsBundle[key].event;
+
+      if (searchedEvent) {
+        window.dispatchEvent(searchedEvent);
+      }
+    }
+  };
+
   /**
-   * addCustomEvent - method for adding a new custom event
+   * registerEvent - method for adding a new custom event
    * @param params - an object that stores the field "detail"
    * "detail" is an event-dependent value associated with this event
    */
@@ -81,16 +136,14 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
   public registerCustomEvent = (params?: RegisterEventParamsType<T>) =>
     this.registerBaseEvent({ ...params, eventBaseName: this.eventName });
 
-  public registerBaseEvent = ({
+  private registerBaseEvent = ({
     eventId,
     detail,
     eventBaseName,
   }: RegisterEventParamsType<T> & { eventBaseName: string }) => {
+    Databus.checkEventState(eventBaseName);
+
     const newEventName = eventId || eventBaseName;
-
-    // check if exists newEventName
-    Databus.checkForEventState(eventBaseName);
-
     const prevData = Databus.eventState[eventBaseName][newEventName];
 
     if (prevData?.event) {
@@ -107,24 +160,8 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
     };
   };
 
-  private getListenerToRemove = ({
-    eventId,
-    isListenerCustom,
-  }: {
-    eventId: string;
-    isListenerCustom: boolean;
-  }) => {
-    const eventsBundle = isListenerCustom
-      ? Databus.eventState[this.eventName]
-      : Databus.eventState[Databus.getFormattedEventName(this.eventName)];
-
-    const event = eventsBundle ? eventsBundle[eventId] : null;
-
-    return event?.listener;
-  };
-
   /**
-   * addEventListener - method for adding a new listener
+   * registerEventListener - method for adding a new listener
    * @param eventId
    * @param listener - a function that will be called after receiving
    * a notification with the name of the type of the signed event
@@ -146,33 +183,33 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
 
   private registerBaseEventListener = ({
     eventId: id,
-    listener,
+    listener: pureListener,
     eventBaseName,
   }: {
     eventId?: string;
     listener(event: CustomEvent<T>): void;
     eventBaseName: string;
   }) => {
+    Databus.checkEventState(eventBaseName);
+
     const eventId = id || eventBaseName;
 
-    const preparedListener = ({ detail }: CustomEvent) => listener(detail);
+    const listener = ({ detail }: CustomEvent) => pureListener(detail);
 
-    Databus.checkForEventState(eventBaseName);
+    const prevEventData = Databus.eventState[eventBaseName][eventId];
 
-    const prevData = Databus.eventState[eventBaseName][eventId];
-
-    if (prevData?.listener) {
-      console.warn(`Listener ${eventId} was registered earlier`);
+    if (prevEventData?.listener) {
+      console.warn(`Listener ${eventId} was already registered`);
 
       return;
     }
 
     Databus.eventState[eventBaseName][eventId] = {
-      ...prevData,
-      listener: preparedListener,
+      ...prevEventData,
+      listener,
     };
 
-    window.addEventListener(eventId, preparedListener);
+    window.addEventListener(eventId, listener);
   };
 
   /**
@@ -184,57 +221,30 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
       return;
     }
 
-    const isListenerCustom = Boolean(Databus.eventState[this.eventName]);
-
-    const eventsBundleName = isListenerCustom
+    const isCustomListener = Boolean(Databus.eventState[this.eventName]);
+    const eventsBundleName = isCustomListener
       ? this.eventName
       : Databus.getFormattedEventName(this.eventName);
 
+    // eslint error about options chaining
     // eslint-disable-next-line @typescript-eslint/no-use-before-define
     const eventId = params?.eventId || eventsBundleName;
 
-    const listenerToRemove = this.getListenerToRemove({
+    const listener = Databus.getListenerToRemove({
+      eventName: this.eventName,
       eventId,
-      isListenerCustom,
+      isCustomListener,
     });
 
-    if (!listenerToRemove) {
-      console.warn(`Listener ${eventId} was removed earlier`);
+    if (!listener) {
+      console.warn(`Listener ${eventId} was already removed`);
 
       return;
     }
 
-    window.removeEventListener(eventId, listenerToRemove);
+    window.removeEventListener(eventId, listener);
 
     delete Databus.eventState[eventsBundleName][eventId];
-  };
-
-  static dispatchEvent = ({
-    eventName,
-    eventId,
-  }: {
-    eventName: string;
-    eventId?: string;
-  }) => {
-    const eventsBundle = Databus.eventState[eventName];
-
-    if (eventId) {
-      const eventForDispatch = eventsBundle[eventId]?.event;
-
-      if (eventForDispatch) {
-        window.dispatchEvent(eventForDispatch);
-      }
-
-      return;
-    }
-
-    for (const key in eventsBundle) {
-      const eventFromState = eventsBundle[key].event;
-
-      if (eventFromState) {
-        window.dispatchEvent(eventFromState);
-      }
-    }
   };
 
   /**
@@ -262,6 +272,4 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
       }
     }
   };
-
-  static getData = ({ name }: { name: string }) => Databus.dataState[name];
 }
