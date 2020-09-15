@@ -1,11 +1,10 @@
-interface DatabusType<T = { [key: string]: any }> {
+interface DatabusType<T = Record<string, any>> {
   registerEvent(params?: { detail?: T }): void;
   registerEventListener(params: {
     eventId?: string;
     listener(event: CustomEvent<T>): void;
   }): void;
   removeEventListener(params?: { eventId?: string }): void;
-  dispatchEvent(params?: { eventId?: string }): void;
   setData(params: { values: { [key: string]: any } }): void;
 }
 
@@ -16,21 +15,30 @@ interface DatabusType<T = { [key: string]: any }> {
  * listener
  */
 
+type RegisterEventParamsType<T> = {
+  eventId?: string;
+  detail?: T;
+  eventBaseName?: string;
+};
+
+type RegisterEventListenerParamsType<T> = {
+  eventId?: string;
+  listener(event: CustomEvent<T>): void;
+  eventBaseName?: string;
+};
+
 export class Databus<T = { [key: string]: any }> implements DatabusType {
-  private eventName?: string;
+  eventName: string;
 
-  constructor(params?: { name: string }) {
-    if (!params) {
-      return;
-    }
-
-    const formattedEventName = Databus.getFormattedEventName(params.name);
-    this.eventName = formattedEventName;
-
-    if (!Databus.eventState[formattedEventName]) {
-      Databus.eventState[formattedEventName] = {};
-    }
+  constructor(params: { name: string }) {
+    this.eventName = params.name;
   }
+
+  public static checkForEventState = (eventName: string) => {
+    if (!Databus.eventState[eventName]) {
+      Databus.eventState[eventName] = {};
+    }
+  };
 
   /**
    * eventState is needed for storing information about events by key.
@@ -55,27 +63,48 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
   /**
    * getFormattedEventName is needed to format event names
    */
-  static getFormattedEventName = (name: string): string =>
-    `@subscriber/${name}`;
+  static getFormattedEventName = (name?: string): string =>
+    `@subscriber/${name || 'empty'}`;
 
   /**
    * addCustomEvent - method for adding a new custom event
    * @param params - an object that stores the field "detail"
    * "detail" is an event-dependent value associated with this event
    */
-  public registerEvent = (params?: { eventId?: string; detail?: T }) => {
-    if (!this.eventName) {
+
+  public registerEvent = (params?: RegisterEventParamsType<T>) =>
+    this.registerBaseEvent({
+      ...params,
+      eventBaseName: Databus.getFormattedEventName(this.eventName),
+    });
+
+  public registerCustomEvent = (params?: RegisterEventParamsType<T>) =>
+    this.registerBaseEvent({ ...params, eventBaseName: this.eventName });
+
+  public registerBaseEvent = ({
+    eventId,
+    detail,
+    eventBaseName,
+  }: RegisterEventParamsType<T> & { eventBaseName: string }) => {
+    const newEventName = eventId || eventBaseName;
+
+    const formattedEventName = Databus.getFormattedEventName(eventBaseName);
+
+    // check if exists formattedEventName
+    Databus.checkForEventState(formattedEventName);
+
+    const prevData = Databus.eventState[formattedEventName][newEventName];
+
+    if (prevData.event) {
+      console.warn(`Event ${newEventName} was registered earlier`);
+
       return;
     }
 
-    const newEventName = params?.eventId || this.eventName;
-
-    const prevData = Databus.eventState[this.eventName][newEventName];
-
-    Databus.eventState[this.eventName][newEventName] = {
+    Databus.eventState[eventBaseName][newEventName] = {
       ...prevData,
       event: new CustomEvent<T>(newEventName, {
-        detail: params && params.detail,
+        detail: detail,
       }),
     };
   };
@@ -86,23 +115,43 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
    * @param listener - a function that will be called after receiving
    * a notification with the name of the type of the signed event
    */
-  public registerEventListener = ({
+
+  public registerEventListener = (params: RegisterEventListenerParamsType<T>) =>
+    this.registerBaseEventListener({
+      ...params,
+      eventBaseName: Databus.getFormattedEventName(this.eventName),
+    });
+
+  public registerCustomEventListener = (
+    params: RegisterEventListenerParamsType<T>,
+  ) =>
+    this.registerBaseEventListener({
+      ...params,
+      eventBaseName: this.eventName,
+    });
+
+  private registerBaseEventListener = ({
     eventId,
     listener,
+    eventBaseName,
   }: {
     eventId?: string;
     listener(event: CustomEvent<T>): void;
+    eventBaseName: string;
   }) => {
-    if (!this.eventName) {
+    const listenerName = eventId || eventBaseName;
+
+    const preparedListener = ({ detail }: CustomEvent) => listener(detail);
+
+    const prevData = Databus.eventState[eventBaseName][listenerName];
+
+    if (prevData.event) {
+      console.warn(`Listener ${listenerName} was registered earlier`);
+
       return;
     }
 
-    const listenerName = eventId || this.eventName;
-    const preparedListener = ({ detail }: CustomEvent) => listener(detail);
-
-    const prevData = Databus.eventState[this.eventName][listenerName];
-
-    Databus.eventState[this.eventName][listenerName] = {
+    Databus.eventState[eventBaseName][listenerName] = {
       ...prevData,
       listener: preparedListener,
     };
@@ -124,31 +173,15 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
     const listenerForRemoving =
       Databus.eventState[this.eventName][listenerName].listener;
 
-    if (listenerForRemoving) {
-      window.removeEventListener(listenerName, listenerForRemoving);
+    if (!listenerForRemoving) {
+      console.warn(`Listener ${listenerName} was removed earlier`);
 
-      delete Databus.eventState[this.eventName][listenerName];
-    }
-  };
-
-  /**
-   * dispatchEvent - method for calling event
-   * @param params - you can set event's name for calling
-   * or a name will take from constructor
-   */
-  public dispatchEvent = (params?: { eventId?: string }) => {
-    if (!this.eventName) {
       return;
     }
 
-    const eventName = params?.eventId || this.eventName;
+    window.removeEventListener(listenerName, listenerForRemoving);
 
-    const eventForDispatch =
-      Databus.eventState[this.eventName][eventName].event;
-
-    if (eventForDispatch) {
-      window.dispatchEvent(eventForDispatch);
-    }
+    delete Databus.eventState[this.eventName][listenerName];
   };
 
   static dispatchEvent = ({
@@ -205,11 +238,5 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
     }
   };
 
-  public getData = (params?: { name: string }) => {
-    const dataStateName = params?.name || this.eventName;
-
-    if (dataStateName) {
-      return Databus.dataState[dataStateName];
-    }
-  };
+  static getData = ({ name }: { name: string }) => Databus.dataState[name];
 }
