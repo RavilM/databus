@@ -88,14 +88,12 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
   }: RegisterEventParamsType<T> & { eventBaseName: string }) => {
     const newEventName = eventId || eventBaseName;
 
-    const formattedEventName = Databus.getFormattedEventName(eventBaseName);
+    // check if exists newEventName
+    Databus.checkForEventState(eventBaseName);
 
-    // check if exists formattedEventName
-    Databus.checkForEventState(formattedEventName);
+    const prevData = Databus.eventState[eventBaseName][newEventName];
 
-    const prevData = Databus.eventState[formattedEventName][newEventName];
-
-    if (prevData.event) {
+    if (prevData?.event) {
       console.warn(`Event ${newEventName} was registered earlier`);
 
       return;
@@ -107,6 +105,22 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
         detail: detail,
       }),
     };
+  };
+
+  private getListenerToRemove = ({
+    eventId,
+    isListenerCustom,
+  }: {
+    eventId: string;
+    isListenerCustom: boolean;
+  }) => {
+    const eventsBundle = isListenerCustom
+      ? Databus.eventState[this.eventName]
+      : Databus.eventState[Databus.getFormattedEventName(this.eventName)];
+
+    const event = eventsBundle ? eventsBundle[eventId] : null;
+
+    return event?.listener;
   };
 
   /**
@@ -131,7 +145,7 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
     });
 
   private registerBaseEventListener = ({
-    eventId,
+    eventId: id,
     listener,
     eventBaseName,
   }: {
@@ -139,24 +153,26 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
     listener(event: CustomEvent<T>): void;
     eventBaseName: string;
   }) => {
-    const listenerName = eventId || eventBaseName;
+    const eventId = id || eventBaseName;
 
     const preparedListener = ({ detail }: CustomEvent) => listener(detail);
 
-    const prevData = Databus.eventState[eventBaseName][listenerName];
+    Databus.checkForEventState(eventBaseName);
 
-    if (prevData.event) {
-      console.warn(`Listener ${listenerName} was registered earlier`);
+    const prevData = Databus.eventState[eventBaseName][eventId];
+
+    if (prevData?.listener) {
+      console.warn(`Listener ${eventId} was registered earlier`);
 
       return;
     }
 
-    Databus.eventState[eventBaseName][listenerName] = {
+    Databus.eventState[eventBaseName][eventId] = {
       ...prevData,
       listener: preparedListener,
     };
 
-    window.addEventListener(listenerName, preparedListener);
+    window.addEventListener(eventId, preparedListener);
   };
 
   /**
@@ -168,20 +184,29 @@ export class Databus<T = { [key: string]: any }> implements DatabusType {
       return;
     }
 
-    const listenerName = params?.eventId || this.eventName;
+    const isListenerCustom = Boolean(Databus.eventState[this.eventName]);
 
-    const listenerForRemoving =
-      Databus.eventState[this.eventName][listenerName].listener;
+    const eventsBundleName = isListenerCustom
+      ? this.eventName
+      : Databus.getFormattedEventName(this.eventName);
 
-    if (!listenerForRemoving) {
-      console.warn(`Listener ${listenerName} was removed earlier`);
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    const eventId = params?.eventId || eventsBundleName;
+
+    const listenerToRemove = this.getListenerToRemove({
+      eventId,
+      isListenerCustom,
+    });
+
+    if (!listenerToRemove) {
+      console.warn(`Listener ${eventId} was removed earlier`);
 
       return;
     }
 
-    window.removeEventListener(listenerName, listenerForRemoving);
+    window.removeEventListener(eventId, listenerToRemove);
 
-    delete Databus.eventState[this.eventName][listenerName];
+    delete Databus.eventState[eventsBundleName][eventId];
   };
 
   static dispatchEvent = ({
