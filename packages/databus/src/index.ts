@@ -231,22 +231,20 @@ export class Databus<T = Record<string, any>> implements IDatabus {
       return;
     }
 
-    // eslint error about options chaining
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    const eventId = params?.eventId || eventsBundleName;
+    const searchedEventId = params?.eventId || eventsBundleName;
     const eventsBundle = Databus.eventState[eventsBundleName];
-    const eventData = eventsBundle[eventId];
+    const eventData = eventsBundle[searchedEventId];
     const eventListener = eventData?.listener;
 
     if (!eventListener) {
-      console.warn(`Listener ${eventId} was already removed`);
+      console.warn(`Listener ${searchedEventId} was already removed`);
 
       return;
     }
 
-    window.removeEventListener(eventId, eventListener);
+    window.removeEventListener(searchedEventId, eventListener);
 
-    delete Databus.eventState[eventsBundleName][eventId];
+    delete Databus.eventState[eventsBundleName][searchedEventId];
 
     if (Object.keys(eventsBundle).length === 0) {
       delete Databus.eventState[eventsBundleName];
