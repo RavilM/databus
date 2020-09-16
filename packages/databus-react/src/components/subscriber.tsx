@@ -16,7 +16,7 @@ type PropsType<StateToProps> = {
   getStateToProps: getStateToPropsType<StateToProps>;
 };
 
-export const databusSubscriber = <
+export const subscriber = <
   StateToProps extends Record<string, string>,
   OwnProps extends Record<string, string>
 >({

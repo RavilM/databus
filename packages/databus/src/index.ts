@@ -5,17 +5,17 @@ import {
 
 interface IDatabus<T = Record<string, any>> {
   eventName: string;
-  registerEvent(params?: { detail?: T }): void;
-  registerCustomEvent(params: {
+  addEvent(params?: { detail?: T }): void;
+  addCustomEvent(params: {
     eventId?: string;
     listener(event: CustomEvent<T>): void;
   }): void;
-  registerEventListener(params: {
+  addEventListener(params: {
     eventId?: string;
     listener(event: CustomEvent<T>): void;
   }): void;
-  registerCustomEventListener(params?: { eventId?: string }): void;
-  removeEventListener(params?: { eventId?: string }): void;
+  addCustomEventListener(params?: { eventId?: string }): void;
+  addEventListener(params?: { eventId?: string }): void;
   setData(params: { values: { [key: string]: any } }): void;
 }
 
@@ -138,19 +138,19 @@ export class Databus<T = Record<string, any>> implements IDatabus {
    * "detail" is an event-dependent value associated with this event
    */
 
-  public registerEvent = (params?: RegisterEventParamsType<T>) =>
-    this.registerBaseEvent({
+  public addEvent = (params?: RegisterEventParamsType<T>) =>
+    this.addBaseEvent({
       ...params,
       eventBaseName: getFormattedEventName(this.eventName),
     });
 
-  public registerCustomEvent = (params?: RegisterEventParamsType<T>) =>
-    this.registerBaseEvent({
+  public addCustomEvent = (params?: RegisterEventParamsType<T>) =>
+    this.addBaseEvent({
       ...params,
       eventBaseName: getFormattedCustomEventName(this.eventName),
     });
 
-  private registerBaseEvent = ({
+  private addBaseEvent = ({
     eventId: id,
     detail,
     eventBaseName,
@@ -187,7 +187,7 @@ export class Databus<T = Record<string, any>> implements IDatabus {
       eventBaseName: getFormattedEventName(this.eventName),
     });
 
-  public registerCustomEventListener = (
+  public addCustomEventListener = (
     params: RegisterEventListenerParamsType<T>,
   ) =>
     this.registerBaseEventListener({
@@ -224,7 +224,7 @@ export class Databus<T = Record<string, any>> implements IDatabus {
    * removeEventListener - method to remove the listener with
    * the name of the type of the signed event
    */
-  public removeEventListener = (params?: { eventId?: string }) => {
+  public addEventListener = (params?: { eventId?: string }) => {
     const eventsBundleName = Databus.getEventBundleName(this.eventName);
 
     if (!eventsBundleName) {
