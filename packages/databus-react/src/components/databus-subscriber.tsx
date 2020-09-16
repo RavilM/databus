@@ -5,7 +5,7 @@ import { mapperValues } from '../utils/mapped-values';
 import { StateType, StateToPropsMapperType } from '../types';
 
 type AccumType<StateToProps> = {
-  ids: { [key in keyof StateToProps]?: string };
+  eventsMeta: { [key in keyof StateToProps]?: string };
 } & StateType<StateToProps>;
 
 type getStateToPropsType<StateToProps> = {
@@ -26,7 +26,7 @@ export const databusSubscriber = <
     constructor(props: OwnProps) {
       super(props);
 
-      const data = Object.keys(getStateToProps).reduce(
+      this.state = Object.keys(getStateToProps).reduce(
         (accum: AccumType<StateToProps>, name: string) => {
           const currentPropValues = getStateToProps[name];
           const databus = new Databus({ name });
@@ -36,36 +36,31 @@ export const databusSubscriber = <
 
           databus.registerEventListener({
             eventId,
-            listener: () => {
+            listener: () =>
               this.setState((prevState: StateType<StateToProps>) => ({
                 ...prevState,
                 ...mapperValues(currentPropValues, name),
-              }));
-            },
+              })),
           });
 
           return {
             ...accum,
             ...mapperValues(currentPropValues, name),
-            ids: { ...accum.ids, [name]: eventId },
+            eventsMeta: { ...accum.eventsMeta, [name]: eventId },
           };
         },
         {
-          ids: {},
+          eventsMeta: {},
         },
       );
-
-      this.state = {
-        ...data,
-      };
     }
 
     componentWillUnmount() {
-      Object.keys(this.state.ids).forEach((eventName: string) =>
+      for (const eventName in this.state.eventsMeta) {
         new Databus({ name: eventName }).removeEventListener({
-          eventId: this.state.ids[eventName],
-        }),
-      );
+          eventId: this.state.eventsMeta[eventName],
+        });
+      }
     }
 
     render() {
