@@ -107,25 +107,27 @@ export class Databus<T = Record<string, any>> implements IDatabus {
   }) => {
     const eventsBundleName = Databus.getEventBundleName(eventName);
 
-    if (eventsBundleName) {
-      const eventsBundle = Databus.eventState[eventsBundleName];
+    if (!eventsBundleName) {
+      return;
+    }
 
-      if (eventId) {
-        const searchedEvent = eventsBundle[eventId]?.event;
+    const eventsBundle = Databus.eventState[eventsBundleName];
 
-        if (searchedEvent) {
-          window.dispatchEvent(searchedEvent);
-        }
+    if (eventId) {
+      const searchedEvent = eventsBundle[eventId]?.event;
 
-        return;
+      if (searchedEvent) {
+        window.dispatchEvent(searchedEvent);
       }
 
-      for (const key in eventsBundle) {
-        const searchedEvent = eventsBundle[key].event;
+      return;
+    }
 
-        if (searchedEvent) {
-          window.dispatchEvent(searchedEvent);
-        }
+    for (const key in eventsBundle) {
+      const searchedEvent = eventsBundle[key].event;
+
+      if (searchedEvent) {
+        window.dispatchEvent(searchedEvent);
       }
     }
   };
@@ -225,27 +227,29 @@ export class Databus<T = Record<string, any>> implements IDatabus {
   public removeEventListener = (params?: { eventId?: string }) => {
     const eventsBundleName = Databus.getEventBundleName(this.eventName);
 
-    if (eventsBundleName) {
-      // eslint error about options chaining
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      const eventId = params?.eventId || eventsBundleName;
-      const eventsBundle = Databus.eventState[eventsBundleName];
-      const eventData = eventsBundle[eventId];
-      const eventListener = eventData?.listener;
+    if (!eventsBundleName) {
+      return;
+    }
 
-      if (!eventListener) {
-        console.warn(`Listener ${eventId} was already removed`);
+    // eslint error about options chaining
+    // eslint-disable-next-line @typescript-eslint/no-use-before-define
+    const eventId = params?.eventId || eventsBundleName;
+    const eventsBundle = Databus.eventState[eventsBundleName];
+    const eventData = eventsBundle[eventId];
+    const eventListener = eventData?.listener;
 
-        return;
-      }
+    if (!eventListener) {
+      console.warn(`Listener ${eventId} was already removed`);
 
-      window.removeEventListener(eventId, eventListener);
+      return;
+    }
 
-      delete Databus.eventState[eventsBundleName][eventId];
+    window.removeEventListener(eventId, eventListener);
 
-      if (Object.keys(eventsBundle).length === 0) {
-        delete Databus.eventState[eventsBundleName];
-      }
+    delete Databus.eventState[eventsBundleName][eventId];
+
+    if (Object.keys(eventsBundle).length === 0) {
+      delete Databus.eventState[eventsBundleName];
     }
   };
 
@@ -260,16 +264,18 @@ export class Databus<T = Record<string, any>> implements IDatabus {
       const eventsBundleName = getFormattedEventName(valueName);
       const eventsBundle = Databus.eventState[eventsBundleName];
 
-      if (eventsBundle) {
-        for (const eventId in eventsBundle) {
-          const event = eventsBundle[eventId].event;
+      if (!eventsBundle) {
+        return;
+      }
 
-          if (event) {
-            Databus.dispatchEvent({
-              eventName: valueName,
-              eventId: eventId,
-            });
-          }
+      for (const eventId in eventsBundle) {
+        const event = eventsBundle[eventId].event;
+
+        if (event) {
+          Databus.dispatchEvent({
+            eventName: valueName,
+            eventId: eventId,
+          });
         }
       }
     }
