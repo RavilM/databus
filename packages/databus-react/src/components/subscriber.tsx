@@ -1,73 +1,72 @@
-import React, { ComponentType, FC, useEffect, useState } from 'react';
+import React, { ComponentType, PureComponent } from 'react';
 import { uniqueId } from 'lodash-es';
 import { Databus } from '@ravilm/databus';
 import { mapperValues } from '../utils/mapped-values';
-import { ObjectType, StateType, StateToPropsMapperType } from '../types';
+import { StateType, StateToPropsMapperType } from '../types';
 
 type AccumType<StateToProps> = {
-  ids: { [key in keyof StateToProps]?: string };
+  eventsMeta: { [key in keyof StateToProps]?: string };
 } & StateType<StateToProps>;
 
 type getStateToPropsType<StateToProps> = {
   [key: string]: StateToPropsMapperType<StateToProps>;
 };
 
+type PropsType<StateToProps> = {
+  getStateToProps: getStateToPropsType<StateToProps>;
+};
+
 export const subscriber = <
-  StateToProps extends ObjectType,
-  OwnProps extends ObjectType
+  StateToProps extends Record<string, string>,
+  OwnProps extends Record<string, string>
 >({
   getStateToProps,
-}: {
-  getStateToProps: getStateToPropsType<StateToProps>;
-}) => (
-  WrappedComponent: ComponentType<OwnProps>,
-): FC<StateToProps & OwnProps> => (props: OwnProps) => {
-  const [state, setState] = useState<StateType<StateToProps>>({});
+}: PropsType<StateToProps>) => (WrappedComponent: ComponentType<OwnProps>) =>
+  class extends PureComponent<OwnProps, StateType<StateToProps>> {
+    constructor(props: OwnProps) {
+      super(props);
 
-  useEffect(() => {
-    const data = Object.keys(getStateToProps).reduce(
-      (accum: AccumType<StateToProps>, name: string) => {
-        const currentPropValues = getStateToProps[name];
-        const databus = new Databus({ name: `@subscriber/${name}` });
-        const id = uniqueId(`@subscriber/${name}__`);
+      this.state = Object.keys(getStateToProps).reduce(
+        (accum: AccumType<StateToProps>, name: string) => {
+          const currentPropValues = getStateToProps[name];
+          const databus = new Databus({ name });
+          const eventId = uniqueId(`${name}__`);
 
-        databus.addCustomEvent({ eventId: id });
+          databus.registerEvent({ eventId });
 
-        databus.addEventListener({
-          eventId: id,
-          listener: () => {
-            setState(prevState => ({
-              ...prevState,
-              ...mapperValues(currentPropValues, name),
-            }));
-          },
-        });
+          databus.registerEventListener({
+            eventId,
+            listener: () =>
+              this.setState((prevState: StateType<StateToProps>) => ({
+                ...prevState,
+                ...mapperValues(currentPropValues, name),
+              })),
+          });
 
-        return {
-          ...accum,
-          ...mapperValues(currentPropValues, name),
-          ids: { ...accum.ids, [`@subscriber/${name}`]: id },
-        };
-      },
-      {
-        ids: {},
-      },
-    );
-
-    const { ids, ...rest } = data;
-
-    setState(prevState => ({
-      ...prevState,
-      ...rest,
-    }));
-
-    return () =>
-      Object.keys(data.ids).forEach((key: string) =>
-        new Databus({ name: key }).removeEventListener({
-          eventId: data.ids[key],
-        }),
+          return {
+            ...accum,
+            ...mapperValues(currentPropValues, name),
+            eventsMeta: { ...accum.eventsMeta, [name]: eventId },
+          };
+        },
+        {
+          eventsMeta: {},
+        },
       );
-  }, []);
+    }
 
-  return <WrappedComponent {...props} {...state} />;
-};
+    componentWillUnmount() {
+      for (const eventName in this.state.eventsMeta) {
+        new Databus({ name: eventName }).removeEventListener({
+          eventId: this.state.eventsMeta[eventName],
+        });
+      }
+    }
+
+    render() {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { ids, ...rest } = this.state;
+
+      return <WrappedComponent {...this.props} {...rest} />;
+    }
+  };
