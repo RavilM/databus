@@ -32,9 +32,9 @@ export const subscriber = <
           const databus = new Databus({ name });
           const eventId = uniqueId(`${name}__`);
 
-          databus.registerEvent({ eventId });
+          databus.addCustomEvent({ eventId });
 
-          databus.registerEventListener({
+          databus.addEventListener({
             eventId,
             listener: () =>
               this.setState((prevState: StateType<StateToProps>) => ({
