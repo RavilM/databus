@@ -22,13 +22,21 @@ interface IDatabus<T = Record<string, any>> {
 type RegisterEventParamsType<T> = {
   eventId?: string;
   detail?: T;
-  eventBaseName?: string;
+};
+
+type RegisterBaseEventParamsType<T> = RegisterEventParamsType<T> & {
+  eventBaseName: string;
 };
 
 type RegisterEventListenerParamsType<T> = {
   eventId?: string;
   listener(event: CustomEvent<T>): void;
-  eventBaseName?: string;
+};
+
+type RegisterBaseEventListenerParamsType<T> = RegisterEventListenerParamsType<
+  T
+> & {
+  eventBaseName: string;
 };
 
 /**
@@ -144,7 +152,7 @@ export class Databus<T = Record<string, any>> implements IDatabus {
     eventId: id,
     detail,
     eventBaseName,
-  }: RegisterEventParamsType<T> & { eventBaseName: string }) => {
+  }: RegisterBaseEventParamsType<T>) => {
     Databus.checkEventState(eventBaseName);
 
     const eventId = id || eventBaseName;
@@ -189,11 +197,7 @@ export class Databus<T = Record<string, any>> implements IDatabus {
     eventId: id,
     listener: pureListener,
     eventBaseName,
-  }: {
-    eventId?: string;
-    listener(event: CustomEvent<T>): void;
-    eventBaseName: string;
-  }) => {
+  }: RegisterBaseEventListenerParamsType<T>) => {
     Databus.checkEventState(eventBaseName);
 
     const eventId = id || eventBaseName;
