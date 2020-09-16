@@ -1,3 +1,8 @@
+import {
+  getFormattedEventName,
+  getFormattedCustomEventName,
+} from './utils/get-formatted-event-names';
+
 interface IDatabus<T = Record<string, any>> {
   eventName: string;
   registerEvent(params?: { detail?: T }): void;
@@ -66,31 +71,23 @@ export class Databus<T = Record<string, any>> implements IDatabus {
    */
   public static dataState: Record<string, any> = {};
 
-  /**
-   * getFormattedEventName is needed to format event names
-   */
-  public static getFormattedEventName = (name: string): string =>
-    `@subscriber/${name}`;
-
   public static getData = ({ name }: { name: string }) =>
     Databus.dataState[name];
 
-  private static getListenerToRemove = ({
-    eventName,
-    eventId,
-    isCustomListener,
-  }: {
-    eventName: string;
-    eventId: string;
-    isCustomListener: boolean;
-  }) => {
-    const eventsBundle = isCustomListener
-      ? Databus.eventState[eventName]
-      : Databus.eventState[Databus.getFormattedEventName(eventName)];
+  private static getEventBundleName = (eventName: string): string | null => {
+    const eventSectionName = getFormattedEventName(eventName);
 
-    const event = eventsBundle ? eventsBundle[eventId] : null;
+    if (Databus.eventState[eventSectionName]) {
+      return eventSectionName;
+    }
 
-    return event?.listener;
+    const customEventSectionName = getFormattedCustomEventName(eventName);
+
+    if (Databus.eventState[customEventSectionName]) {
+      return customEventSectionName;
+    }
+
+    return null;
   };
 
   public static dispatchEvent = ({
@@ -100,23 +97,27 @@ export class Databus<T = Record<string, any>> implements IDatabus {
     eventName: string;
     eventId?: string;
   }) => {
-    const eventsBundle = Databus.eventState[eventName];
+    const eventsBundleName = Databus.getEventBundleName(eventName);
 
-    if (eventId) {
-      const searchedEvent = eventsBundle[eventId]?.event;
+    if (eventsBundleName) {
+      const eventsBundle = Databus.eventState[eventsBundleName];
 
-      if (searchedEvent) {
-        window.dispatchEvent(searchedEvent);
+      if (eventId) {
+        const searchedEvent = eventsBundle[eventId]?.event;
+
+        if (searchedEvent) {
+          window.dispatchEvent(searchedEvent);
+        }
+
+        return;
       }
 
-      return;
-    }
+      for (const key in eventsBundle) {
+        const searchedEvent = eventsBundle[key].event;
 
-    for (const key in eventsBundle) {
-      const searchedEvent = eventsBundle[key].event;
-
-      if (searchedEvent) {
-        window.dispatchEvent(searchedEvent);
+        if (searchedEvent) {
+          window.dispatchEvent(searchedEvent);
+        }
       }
     }
   };
@@ -130,31 +131,34 @@ export class Databus<T = Record<string, any>> implements IDatabus {
   public registerEvent = (params?: RegisterEventParamsType<T>) =>
     this.registerBaseEvent({
       ...params,
-      eventBaseName: Databus.getFormattedEventName(this.eventName),
+      eventBaseName: getFormattedEventName(this.eventName),
     });
 
   public registerCustomEvent = (params?: RegisterEventParamsType<T>) =>
-    this.registerBaseEvent({ ...params, eventBaseName: this.eventName });
+    this.registerBaseEvent({
+      ...params,
+      eventBaseName: getFormattedCustomEventName(this.eventName),
+    });
 
   private registerBaseEvent = ({
-    eventId,
+    eventId: id,
     detail,
     eventBaseName,
   }: RegisterEventParamsType<T> & { eventBaseName: string }) => {
     Databus.checkEventState(eventBaseName);
 
-    const newEventName = eventId || eventBaseName;
-    const prevData = Databus.eventState[eventBaseName][newEventName];
+    const eventId = id || eventBaseName;
+    const prevData = Databus.eventState[eventBaseName][eventId];
 
     if (prevData?.event) {
-      console.warn(`Event ${newEventName} was registered earlier`);
+      console.warn(`Event ${eventId} was registered earlier`);
 
       return;
     }
 
-    Databus.eventState[eventBaseName][newEventName] = {
+    Databus.eventState[eventBaseName][eventId] = {
       ...prevData,
-      event: new CustomEvent<T>(newEventName, {
+      event: new CustomEvent<T>(eventId, {
         detail: detail,
       }),
     };
@@ -170,7 +174,7 @@ export class Databus<T = Record<string, any>> implements IDatabus {
   public registerEventListener = (params: RegisterEventListenerParamsType<T>) =>
     this.registerBaseEventListener({
       ...params,
-      eventBaseName: Databus.getFormattedEventName(this.eventName),
+      eventBaseName: getFormattedEventName(this.eventName),
     });
 
   public registerCustomEventListener = (
@@ -178,7 +182,7 @@ export class Databus<T = Record<string, any>> implements IDatabus {
   ) =>
     this.registerBaseEventListener({
       ...params,
-      eventBaseName: this.eventName,
+      eventBaseName: getFormattedCustomEventName(this.eventName),
     });
 
   private registerBaseEventListener = ({
@@ -193,9 +197,7 @@ export class Databus<T = Record<string, any>> implements IDatabus {
     Databus.checkEventState(eventBaseName);
 
     const eventId = id || eventBaseName;
-
     const listener = ({ detail }: CustomEvent) => pureListener(detail);
-
     const prevEventData = Databus.eventState[eventBaseName][eventId];
 
     if (prevEventData?.listener) {
@@ -217,34 +219,30 @@ export class Databus<T = Record<string, any>> implements IDatabus {
    * the name of the type of the signed event
    */
   public removeEventListener = (params?: { eventId?: string }) => {
-    if (!this.eventName) {
-      return;
+    const eventsBundleName = Databus.getEventBundleName(this.eventName);
+
+    if (eventsBundleName) {
+      // eslint error about options chaining
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      const eventId = params?.eventId || eventsBundleName;
+      const eventsBundle = Databus.eventState[eventsBundleName];
+      const eventData = eventsBundle[eventId];
+      const eventListener = eventData?.listener;
+
+      if (!eventListener) {
+        console.warn(`Listener ${eventId} was already removed`);
+
+        return;
+      }
+
+      window.removeEventListener(eventId, eventListener);
+
+      delete Databus.eventState[eventsBundleName][eventId];
+
+      if (Object.keys(eventsBundle).length === 0) {
+        delete Databus.eventState[eventsBundleName];
+      }
     }
-
-    const isCustomListener = Boolean(Databus.eventState[this.eventName]);
-    const eventsBundleName = isCustomListener
-      ? this.eventName
-      : Databus.getFormattedEventName(this.eventName);
-
-    // eslint error about options chaining
-    // eslint-disable-next-line @typescript-eslint/no-use-before-define
-    const eventId = params?.eventId || eventsBundleName;
-
-    const listener = Databus.getListenerToRemove({
-      eventName: this.eventName,
-      eventId,
-      isCustomListener,
-    });
-
-    if (!listener) {
-      console.warn(`Listener ${eventId} was already removed`);
-
-      return;
-    }
-
-    window.removeEventListener(eventId, listener);
-
-    delete Databus.eventState[eventsBundleName][eventId];
   };
 
   /**
@@ -255,7 +253,7 @@ export class Databus<T = Record<string, any>> implements IDatabus {
     for (const valueName in values) {
       Databus.dataState[valueName] = values[valueName];
 
-      const eventsBundleName = Databus.getFormattedEventName(valueName);
+      const eventsBundleName = getFormattedEventName(valueName);
       const eventsBundle = Databus.eventState[eventsBundleName];
 
       if (eventsBundle) {
@@ -264,7 +262,7 @@ export class Databus<T = Record<string, any>> implements IDatabus {
 
           if (event) {
             Databus.dispatchEvent({
-              eventName: eventsBundleName,
+              eventName: valueName,
               eventId: eventId,
             });
           }

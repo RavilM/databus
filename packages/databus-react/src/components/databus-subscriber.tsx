@@ -46,7 +46,7 @@ export const databusSubscriber = <
           return {
             ...accum,
             ...mapperValues(currentPropValues, name),
-            eventsMeta: { ...accum.eventIds, [name]: eventId },
+            eventsMeta: { ...accum.eventsMeta, [name]: eventId },
           };
         },
         {
@@ -58,7 +58,7 @@ export const databusSubscriber = <
     componentWillUnmount() {
       for (const eventName in this.state.eventsMeta) {
         new Databus({ name: eventName }).removeEventListener({
-          eventId: this.state.eventIds[eventName],
+          eventId: this.state.eventsMeta[eventName],
         });
       }
     }
