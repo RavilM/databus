@@ -16,24 +16,23 @@ interface IDatabus<T = Record<string, any>> {
   }): void;
   addCustomEventListener(params?: { eventId?: string }): void;
   addEventListener(params?: { eventId?: string }): void;
-  setData(params: { values: { [key: string]: any } }): void;
 }
 
-type RegisterEventParamsType<T> = {
+type AddEventParamsType<T> = {
   eventId?: string;
   detail?: T;
 };
 
-type RegisterBaseEventParamsType<T> = RegisterEventParamsType<T> & {
+type AddBaseEventParamsType<T> = AddEventParamsType<T> & {
   eventBaseName: string;
 };
 
-type RegisterEventListenerParamsType<T> = {
+type AddEventListenerParamsType<T> = {
   eventId?: string;
   listener(event: CustomEvent<T>): void;
 };
 
-type RegisterBaseEventListenerParamsType<T> = RegisterEventListenerParamsType<
+type AddBaseEventListenerParamsType<T> = AddEventListenerParamsType<
   T
 > & {
   eventBaseName: string;
@@ -133,18 +132,18 @@ export class Databus<T = Record<string, any>> implements IDatabus {
   };
 
   /**
-   * registerEvent - method for adding a new custom event
+   * addEvent - method for adding a new custom event
    * @param params - an object that stores the field "detail"
    * "detail" is an event-dependent value associated with this event
    */
 
-  public addEvent = (params?: RegisterEventParamsType<T>) =>
+  public addEvent = (params?: AddEventParamsType<T>) =>
     this.addBaseEvent({
       ...params,
       eventBaseName: getFormattedEventName(this.eventName),
     });
 
-  public addCustomEvent = (params?: RegisterEventParamsType<T>) =>
+  public addCustomEvent = (params?: AddEventParamsType<T>) =>
     this.addBaseEvent({
       ...params,
       eventBaseName: getFormattedCustomEventName(this.eventName),
@@ -154,14 +153,14 @@ export class Databus<T = Record<string, any>> implements IDatabus {
     eventId: id,
     detail,
     eventBaseName,
-  }: RegisterBaseEventParamsType<T>) => {
+  }: AddBaseEventParamsType<T>) => {
     Databus.checkEventState(eventBaseName);
 
     const eventId = id || eventBaseName;
     const prevData = Databus.eventState[eventBaseName][eventId];
 
     if (prevData?.event) {
-      console.warn(`Event ${eventId} was registered earlier`);
+      console.warn(`Event ${eventId} was added earlier`);
 
       return;
     }
@@ -175,31 +174,31 @@ export class Databus<T = Record<string, any>> implements IDatabus {
   };
 
   /**
-   * registerEventListener - method for adding a new listener
+   * AddEventListener - method for adding a new listener
    * @param eventId
    * @param listener - a function that will be called after receiving
    * a notification with the name of the type of the signed event
    */
 
-  public registerEventListener = (params: RegisterEventListenerParamsType<T>) =>
-    this.registerBaseEventListener({
+  public addEventListener = (params: AddEventListenerParamsType<T>) =>
+    this.addBaseEventListener({
       ...params,
       eventBaseName: getFormattedEventName(this.eventName),
     });
 
   public addCustomEventListener = (
-    params: RegisterEventListenerParamsType<T>,
+    params: AddEventListenerParamsType<T>,
   ) =>
-    this.registerBaseEventListener({
+    this.addBaseEventListener({
       ...params,
       eventBaseName: getFormattedCustomEventName(this.eventName),
     });
 
-  private registerBaseEventListener = ({
+  private addBaseEventListener = ({
     eventId: id,
     listener: pureListener,
     eventBaseName,
-  }: RegisterBaseEventListenerParamsType<T>) => {
+  }: AddBaseEventListenerParamsType<T>) => {
     Databus.checkEventState(eventBaseName);
 
     const eventId = id || eventBaseName;
@@ -207,7 +206,7 @@ export class Databus<T = Record<string, any>> implements IDatabus {
     const prevEventData = Databus.eventState[eventBaseName][eventId];
 
     if (prevEventData?.listener) {
-      console.warn(`Listener ${eventId} was already registered`);
+      console.warn(`Listener ${eventId} was already added`);
 
       return;
     }
@@ -224,7 +223,7 @@ export class Databus<T = Record<string, any>> implements IDatabus {
    * removeEventListener - method to remove the listener with
    * the name of the type of the signed event
    */
-  public addEventListener = (params?: { eventId?: string }) => {
+  public removeEventListener = (params?: { eventId?: string }) => {
     const eventsBundleName = Databus.getEventBundleName(this.eventName);
 
     if (!eventsBundleName) {
@@ -255,7 +254,7 @@ export class Databus<T = Record<string, any>> implements IDatabus {
    * setData - method for setting new data to dataState
    * @param values - keys
    */
-  public setData = ({ values }: { values: Record<string, any> }) => {
+  public static setData = ({ values }: { values: Record<string, any> }) => {
     for (const valueName in values) {
       Databus.dataState[valueName] = values[valueName];
 

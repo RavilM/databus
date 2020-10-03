@@ -32,7 +32,7 @@ export const subscriber = <
           const databus = new Databus({ name });
           const eventId = uniqueId(`${name}__`);
 
-          databus.addCustomEvent({ eventId });
+          databus.addEvent({ eventId });
 
           databus.addEventListener({
             eventId,
@@ -65,7 +65,7 @@ export const subscriber = <
 
     render() {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { ids, ...rest } = this.state;
+      const { eventsMeta, ...rest } = this.state;
 
       return <WrappedComponent {...this.props} {...rest} />;
     }
