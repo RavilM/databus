@@ -4,7 +4,7 @@ import {
 } from './utils/get-formatted-event-names';
 
 interface IDatabus<T = Record<string, any>> {
-  eventName?: string;
+  eventName: string;
   addEvent(params?: { detail?: T }): void;
   addCustomEvent(params: {
     eventId?: string;
