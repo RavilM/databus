@@ -16,7 +16,6 @@ interface IDatabus<T = Record<string, any>> {
   }): void;
   addCustomEventListener(params?: { eventId?: string }): void;
   addEventListener(params?: { eventId?: string }): void;
-  setData(params: { values: { [key: string]: any } }): void;
 }
 
 type AddEventParamsType<T> = {
@@ -49,8 +48,8 @@ type AddBaseEventListenerParamsType<T> = AddEventListenerParamsType<
 export class Databus<T = Record<string, any>> implements IDatabus {
   public eventName: string;
 
-  constructor(params?: { name: string }) {
-    this.eventName = params?.name ?? 'defaultName';
+  constructor(params: { name: string }) {
+    this.eventName = params.name;
   }
 
   public static checkEventState = (eventName: string) => {
@@ -255,7 +254,7 @@ export class Databus<T = Record<string, any>> implements IDatabus {
    * setData - method for setting new data to dataState
    * @param values - keys
    */
-  public setData = ({ values }: { values: Record<string, any> }) => {
+  public static setData = ({ values }: { values: Record<string, any> }) => {
     for (const valueName in values) {
       Databus.dataState[valueName] = values[valueName];
 
