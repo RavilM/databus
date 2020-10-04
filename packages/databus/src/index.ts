@@ -15,7 +15,6 @@ interface IDatabus<T = Record<string, any>> {
     listener(event: CustomEvent<T>): void;
   }): void;
   addCustomEventListener(params?: { eventId?: string }): void;
-  addEventListener(params?: { eventId?: string }): void;
 }
 
 type AddEventParamsType<T> = {
