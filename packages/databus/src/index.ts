@@ -255,7 +255,7 @@ export class Databus<T = Record<string, any>> implements IDatabus {
       const eventsBundle = Databus.eventState[eventsBundleName];
 
       if (!eventsBundle) {
-        return;
+        continue;
       }
 
       for (const eventId in eventsBundle) {
