@@ -10,5 +10,14 @@
   },
   "devDependencies": {
     "lerna": "3.22.1"
-  }
+  },
+  "description": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RavilM/databus.git"
+  },
+  "bugs": {
+    "url": "https://github.com/RavilM/databus/issues"
+  },
+  "homepage": "https://github.com/RavilM/databus#readme"
 }
