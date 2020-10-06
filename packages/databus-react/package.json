@@ -1,6 +1,6 @@
 {
   "name": "@ravilm/databus-react",
-  "version": "0.0.1-alpha.11",
+  "version": "0.0.1-alpha.12",
   "license": "MIT License",
   "main": "./lib/index.js",
   "typings": "./lib/index.d.ts",
@@ -18,7 +18,7 @@
     "install:update": "npm i"
   },
   "dependencies": {
-    "@ravilm/databus": "^0.0.1-alpha.11"
+    "@ravilm/databus": "^0.0.1-alpha.12"
   },
   "peerDependencies": {
     "react": ">= 16.12.0"
