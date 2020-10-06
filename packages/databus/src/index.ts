@@ -158,12 +158,6 @@ export class Databus<T = Record<string, any>> implements IDatabus {
     const eventId = id || eventBaseName;
     const prevData = Databus.eventState[eventBaseName][eventId];
 
-    if (prevData?.event) {
-      console.warn(`Event ${eventId} was added earlier`);
-
-      return;
-    }
-
     Databus.eventState[eventBaseName][eventId] = {
       ...prevData,
       event: new CustomEvent<T>(eventId, {
