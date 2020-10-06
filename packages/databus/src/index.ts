@@ -12,7 +12,7 @@ interface IDatabus<T = Record<string, any>> {
   }): void;
   addEventListener(params: {
     eventId?: string;
-    listener(event: CustomEvent<T>): void;
+    listener(detail: T): void;
   }): void;
   addCustomEventListener(params?: { eventId?: string }): void;
 }
@@ -28,7 +28,7 @@ type AddBaseEventParamsType<T> = AddEventParamsType<T> & {
 
 type AddEventListenerParamsType<T> = {
   eventId?: string;
-  listener(event: CustomEvent<T>): void;
+  listener(detail: T): void;
 };
 
 type AddBaseEventListenerParamsType<T> = AddEventListenerParamsType<
