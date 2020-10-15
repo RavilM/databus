@@ -1,6 +1,6 @@
 {
   "name": "@ravilm/databus",
-  "version": "0.0.1-beta.1",
+  "version": "0.0.1-beta.2",
   "license": "MIT License",
   "main": "./lib/index.js",
   "typings": "./lib/index.d.ts",
