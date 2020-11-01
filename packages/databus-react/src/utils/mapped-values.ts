@@ -12,12 +12,10 @@ export const mapperValues = <StateToProps extends Record<string, string>>(
     ) => {
       const selectedData = Databus.dataState[name];
 
-      return selectedData
-        ? {
-            ...accumValues,
-            [fieldName]: selectFunc(selectedData),
-          }
-        : accumValues;
+      return {
+        ...accumValues,
+        [fieldName]: selectFunc(selectedData),
+      };
     },
     {},
   );
