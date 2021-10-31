@@ -1,5 +1,5 @@
 import React, { ComponentType, PureComponent } from 'react';
-import { uniqueId } from 'lodash-es';
+import uniqid from 'uniqid';
 import { Databus } from '@ravilm/databus';
 import { mapperValues } from '../utils/mapped-values';
 import { StateType, StateToPropsMapperType } from '../types';
@@ -30,7 +30,7 @@ export const subscriber = <
         (accum: AccumType<StateToProps>, name: string) => {
           const currentPropValues = getStateToProps[name];
           const databus = new Databus({ name });
-          const eventId = uniqueId(`${name}__`);
+          const eventId = uniqid(`${name}__`);
 
           databus.addEvent({ eventId });
 
